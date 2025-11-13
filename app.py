@@ -82,7 +82,7 @@ def index():
 
 @app.route("/logout")
 def logout():
-    session.pop('token_info', None)
+    session.clear()
     flash("You have been logged out.", "success")
     return redirect(url_for('index'))
 

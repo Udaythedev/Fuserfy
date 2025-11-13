@@ -9,12 +9,17 @@
 </head>
 <body>
     <div class="container">
+        <!-- Header with Logout -->
+        <header class="header">
+            <h1>{{ project_name }}</h1>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </header>
+
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="user-info">
                 <h2>{{ display_name }}</h2>
-                <div class="project-name">{{ project_name }}</div>
-                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                <div class="project-name">Logged in</div>
             </div>
             <h3>Playlists</h3>
             <ul class="playlists">
@@ -31,11 +36,13 @@
             <form method="POST" action="{{ url_for('create_playlist') }}" class="create-form">
                 <input type="text" name="new_playlist_name" placeholder="New Playlist Name" required>
                 <button type="submit">Create</button>
-            </form>
+            </div>
         </aside>
 
-        <!-- Main Content -->
-        <main>
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Main Content -->
+            <main>
             <!-- Mini Player -->
             <div class="mini-player">
                 {% if now_playing.track_name != 'No song playing' %}
@@ -88,6 +95,7 @@
                 {% endwith %}
             </div>
         </main>
+        </div>
     </div>
 </body>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
