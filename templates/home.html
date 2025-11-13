@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ project_name }} - Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -26,8 +26,17 @@
             {% endwith %}
         </div>
 
+        <!-- Sidebar Toggle Button (Mobile) -->
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Close sidebar">&times;</button>
+            
             <div class="user-info">
                 {% if profile_image %}
                     <img src="{{ profile_image }}" alt="{{ display_name }}" class="profile-image">
@@ -37,21 +46,28 @@
                 <h2>{{ display_name }}</h2>
                 <div class="project-name">Logged in</div>
             </div>
-            <h3>Playlists</h3>
-            <ul class="playlists">
-                {% for playlist in playlists %}
-                    <li>
-                        {{ playlist.name }}
-                        <form method="POST" action="{{ url_for('delete_playlist') }}">
-                            <input type="hidden" name="playlist_id" value="{{ playlist.id }}">
-                            <button class="delete-btn">🗑️</button>
-                        </form>
-                    </li>
-                {% endfor %}
-            </ul>
-            <form method="POST" action="{{ url_for('create_playlist') }}" class="create-form">
-                <input type="text" name="new_playlist_name" placeholder="New Playlist Name" required>
-                <button type="submit">Create</button>
+
+            <div class="sidebar-playlists">
+                <h3>📋 Playlists</h3>
+                <ul class="playlists">
+                    {% if playlists %}
+                        {% for playlist in playlists %}
+                            <li class="playlist-item">
+                                <span class="playlist-name">{{ playlist.name }}</span>
+                                <button class="delete-btn" type="button" data-playlist-id="{{ playlist.id }}" data-playlist-name="{{ playlist.name }}" title="Delete playlist" aria-label="Delete {{ playlist.name }}">🗑️</button>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="no-playlists">No playlists yet</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <div class="create-form-wrapper">
+                <form method="POST" action="{{ url_for('create_playlist') }}" class="create-form" id="createPlaylistForm">
+                    <input type="text" name="new_playlist_name" placeholder="New Playlist Name" required maxlength="100" aria-label="New playlist name">
+                    <button type="submit" class="btn-create-primary">+ Create</button>
+                </form>
             </div>
         </aside>
 
@@ -103,8 +119,8 @@
                 <!-- Search Section -->
                 <section class="section search-section">
                     <h2>🔍 Search & Add Songs</h2>
-                    <form method="POST" action="{{ url_for('search_songs') }}" class="search-form">
-                        <input type="text" name="search_query" placeholder="Search by song, artist, or album..." required>
+                    <form method="POST" action="{{ url_for('search_songs') }}" class="search-form" id="searchForm">
+                        <input type="text" name="search_query" placeholder="Search by song, artist, or album..." required maxlength="100" aria-label="Search songs">
                         <button type="submit" class="search-btn">🔍 Search</button>
                     </form>
                 </section>
@@ -112,14 +128,22 @@
                 <!-- Bulk Add Section -->
                 <section class="section add-songs">
                     <h2>➕ Add Multiple Songs</h2>
-                    <form method="POST" action="{{ url_for('add_songs') }}">
-                        <select name="playlist_id" required>
-                            <option value="">Select a playlist...</option>
-                            {% for playlist in playlists %}
-                                <option value="{{ playlist.id }}">{{ playlist.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <textarea name="song_list" placeholder="Enter song names, one per line" required></textarea>
+                    <form method="POST" action="{{ url_for('add_songs') }}" id="addSongsForm">
+                        <div class="form-group">
+                            <label for="playlistSelect">Select a playlist:</label>
+                            <select name="playlist_id" id="playlistSelect" required aria-label="Select playlist">
+                                <option value="">— Choose a playlist —</option>
+                                {% for playlist in playlists %}
+                                    <option value="{{ playlist.id }}">{{ playlist.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="helper-text">You must select a playlist before adding songs</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="songList">Enter song names (one per line):</label>
+                            <textarea name="song_list" id="songList" placeholder="Example:&#10;Blinding Lights&#10;As It Was&#10;Heat Waves" required maxlength="5000" aria-label="Song list"></textarea>
+                            <small class="helper-text">Enter artist name or song details for better results</small>
+                        </div>
                         <button type="submit" class="submit-btn">Add Songs</button>
                     </form>
                 </section>
@@ -158,6 +182,22 @@
             </main>
         </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal" role="dialog" aria-labelledby="deleteModalTitle" aria-hidden="true">
+        <div class="modal-content">
+            <h2 id="deleteModalTitle">Delete Playlist?</h2>
+            <p>This action cannot be undone. <strong id="deletePlaylistName"></strong> will be permanently deleted.</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="cancelDelete">Cancel</button>
+                <button class="btn-delete" id="confirmDelete">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+
 </body>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 </html>
