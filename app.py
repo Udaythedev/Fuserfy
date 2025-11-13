@@ -19,19 +19,47 @@ except Exception:
 # Secret key for session (set `FLASK_SECRET_KEY` in production)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY') or os.urandom(24)
 
+# Cookie/session security defaults
+app.config.setdefault('SESSION_COOKIE_HTTPONLY', True)
+app.config.setdefault('SESSION_COOKIE_SAMESITE', 'Lax')
+# For production behind HTTPS, set SESSION_COOKIE_SECURE to True in env or here
+if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('FORCE_SESSION_SECURE') == '1':
+    app.config.setdefault('SESSION_COOKIE_SECURE', True)
+
 # ---------------- Spotify API Credentials (from env) ---------------- #
+# We build the SpotifyOAuth per-request so redirect URIs can be dynamic (useful for
+# local dev vs rendered/prod deployments). If `SPOTIPY_REDIRECT_URI` is set in the
+# environment it will be used; otherwise the app will use the current request's
+# root URL and append `/callback`.
 SPOTIPY_CLIENT_ID = os.environ.get('SPOTIPY_CLIENT_ID')
 SPOTIPY_CLIENT_SECRET = os.environ.get('SPOTIPY_CLIENT_SECRET')
-SPOTIPY_REDIRECT_URI = os.environ.get('SPOTIPY_REDIRECT_URI', 'http://127.0.0.1:5000/callback')
 SCOPE = os.environ.get('SPOTIPY_SCOPE', "playlist-modify-public playlist-modify-private playlist-read-private user-read-playback-state user-modify-playback-state user-read-currently-playing")
 
-# OAuth object (reused)
-sp_oauth = SpotifyOAuth(
-    client_id=SPOTIPY_CLIENT_ID,
-    client_secret=SPOTIPY_CLIENT_SECRET,
-    redirect_uri=SPOTIPY_REDIRECT_URI,
-    scope=SCOPE
-)
+
+def get_spotify_oauth(redirect_override: str | None = None):
+    """Return a SpotifyOAuth configured for the current request.
+
+    If `SPOTIPY_REDIRECT_URI` env var is set it is used. Otherwise if
+    `redirect_override` is provided it's used. If neither is available and a
+    request context is active, the function will use `request.url_root + 'callback'`.
+    """
+    redirect_uri = os.environ.get('SPOTIPY_REDIRECT_URI')
+    if not redirect_uri and redirect_override:
+        redirect_uri = redirect_override
+    # If still not set, try to build from the active request
+    try:
+        if not redirect_uri and request:
+            redirect_uri = request.url_root.rstrip('/') + '/callback'
+    except RuntimeError:
+        # No request context; fall back to localhost callback for offline tools
+        redirect_uri = redirect_uri or 'http://127.0.0.1:5000/callback'
+
+    return SpotifyOAuth(
+        client_id=SPOTIPY_CLIENT_ID,
+        client_secret=SPOTIPY_CLIENT_SECRET,
+        redirect_uri=redirect_uri,
+        scope=SCOPE
+    )
 
 # Project name (used in templates/title)
 PROJECT_NAME = os.environ.get('PROJECT_NAME', 'Fuserfy')
@@ -42,7 +70,14 @@ def index():
     if 'token_info' in session:
         return redirect(url_for('home'))
     else:
-        auth_url = sp_oauth.get_authorize_url()
+        oauth = get_spotify_oauth()
+        # show helpful message if creds are not configured
+        if not SPOTIPY_CLIENT_ID or not SPOTIPY_CLIENT_SECRET:
+            return (
+                "Spotify client credentials are not configured. "
+                "Set SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET in your environment."
+            ), 500
+        auth_url = oauth.get_authorize_url()
         return redirect(auth_url)
 
 @app.route("/callback")
@@ -50,7 +85,8 @@ def callback():
     code = request.args.get('code')
     if code:
         # Exchange code for token_info and store in session
-        token_info = sp_oauth.get_access_token(code)
+        oauth = get_spotify_oauth()
+        token_info = oauth.get_access_token(code)
         session['token_info'] = token_info
         return redirect(url_for('home'))
     else:
@@ -67,7 +103,8 @@ def get_spotify():
     expires_at = token_info.get('expires_at')
     if expires_at and (int(time.time()) - int(expires_at)) >= 0:
         try:
-            refreshed = sp_oauth.refresh_access_token(token_info.get('refresh_token'))
+            oauth = get_spotify_oauth()
+            refreshed = oauth.refresh_access_token(token_info.get('refresh_token'))
             token_info.update(refreshed)
             session['token_info'] = token_info
         except Exception:
