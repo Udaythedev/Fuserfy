@@ -124,31 +124,52 @@ def home():
     if not sp:
         return redirect(url_for('index'))
 
-    display_name = sp.current_user().get('display_name')
-    playlists = sp.current_user_playlists().get('items', [])
+    try:
+        display_name = sp.current_user().get('display_name')
+        playlists = sp.current_user_playlists().get('items', [])
 
-    # Get currently playing song
-    current = sp.current_playback()
-    if current and current['is_playing']:
-        now_playing = {
-            'track_name': current['item']['name'],
-            'artist_name': ', '.join([a['name'] for a in current['item']['artists']]),
-            'album_image': current['item']['album']['images'][0]['url']
-        }
-    else:
-        now_playing = {
-            'track_name': 'No song playing',
-            'artist_name': '',
-            'album_image': ''
-        }
+        # Get currently playing song
+        current = sp.current_playback()
+        if current and current['is_playing']:
+            now_playing = {
+                'track_name': current['item']['name'],
+                'artist_name': ', '.join([a['name'] for a in current['item']['artists']]),
+                'album_image': current['item']['album']['images'][0]['url']
+            }
+        else:
+            now_playing = {
+                'track_name': 'No song playing',
+                'artist_name': '',
+                'album_image': ''
+            }
 
-    return render_template(
-        "home.html",
-        display_name=display_name,
-        playlists=playlists,
-        now_playing=now_playing,
-        project_name=PROJECT_NAME
-    )
+        return render_template(
+            "home.html",
+            display_name=display_name,
+            playlists=playlists,
+            now_playing=now_playing,
+            project_name=PROJECT_NAME
+        )
+    except Exception as e:
+        error_msg = str(e)
+        # Check for common Spotify errors
+        if '403' in error_msg and 'user may not be registered' in error_msg.lower():
+            flash(
+                "Your Spotify account is not registered as a test user. "
+                "Go to https://developer.spotify.com/dashboard, select your app, "
+                "and add your Spotify account email under 'User Management'.",
+                "error"
+            )
+        elif '401' in error_msg or 'unauthorized' in error_msg.lower():
+            flash("Session expired. Please log in again.", "error")
+            session.pop('token_info', None)
+            return redirect(url_for('index'))
+        elif '429' in error_msg:
+            flash("Rate limited by Spotify. Please try again in a moment.", "error")
+        else:
+            flash(f"Error loading playlists: {error_msg}", "error")
+        
+        return redirect(url_for('index'))
 
 # ---------------- Playlist Management ---------------- #
 @app.route("/add_songs", methods=["POST"])
@@ -160,20 +181,23 @@ def add_songs():
     playlist_id = request.form.get('playlist_id')
     song_list = [s.strip() for s in request.form.get('song_list', '').splitlines() if s.strip()]
 
-    track_uris = []
-    for song in song_list:
-        results = sp.search(q=song, limit=1, type='track')
-        items = results.get('tracks', {}).get('items')
-        if items:
-            track_uris.append(items[0]['uri'])
-        else:
-            flash(f"Song not found: {song}", "error")
+    try:
+        track_uris = []
+        for song in song_list:
+            results = sp.search(q=song, limit=1, type='track')
+            items = results.get('tracks', {}).get('items')
+            if items:
+                track_uris.append(items[0]['uri'])
+            else:
+                flash(f"Song not found: {song}", "error")
 
-    if track_uris:
-        sp.playlist_add_items(playlist_id, track_uris)
-        flash(f"Added {len(track_uris)} songs!", "success")
-    else:
-        flash("No valid songs found.", "error")
+        if track_uris:
+            sp.playlist_add_items(playlist_id, track_uris)
+            flash(f"Added {len(track_uris)} songs!", "success")
+        else:
+            flash("No valid songs found.", "error")
+    except Exception as e:
+        flash(f"Error adding songs: {str(e)}", "error")
 
     return redirect(url_for('home'))
 
@@ -185,9 +209,13 @@ def create_playlist():
         return redirect(url_for('index'))
 
     name = request.form.get('new_playlist_name')
-    user_id = sp.current_user().get('id')
-    sp.user_playlist_create(user_id, name)
-    flash(f"Playlist '{name}' created!", "success")
+    try:
+        user_id = sp.current_user().get('id')
+        sp.user_playlist_create(user_id, name)
+        flash(f"Playlist '{name}' created!", "success")
+    except Exception as e:
+        flash(f"Error creating playlist: {str(e)}", "error")
+    
     return redirect(url_for('home'))
 
 @app.route("/rename_playlist", methods=["POST"])
@@ -199,8 +227,12 @@ def rename_playlist():
 
     playlist_id = request.form.get('playlist_id')
     new_name = request.form.get('new_name')
-    sp.playlist_change_details(playlist_id, name=new_name)
-    flash(f"Playlist renamed to '{new_name}'!", "success")
+    try:
+        sp.playlist_change_details(playlist_id, name=new_name)
+        flash(f"Playlist renamed to '{new_name}'!", "success")
+    except Exception as e:
+        flash(f"Error renaming playlist: {str(e)}", "error")
+    
     return redirect(url_for('home'))
 
 @app.route("/delete_playlist", methods=["POST"])
@@ -211,8 +243,12 @@ def delete_playlist():
         return redirect(url_for('index'))
 
     playlist_id = request.form.get('playlist_id')
-    sp.current_user_unfollow_playlist(playlist_id)
-    flash("Playlist deleted!", "success")
+    try:
+        sp.current_user_unfollow_playlist(playlist_id)
+        flash("Playlist deleted!", "success")
+    except Exception as e:
+        flash(f"Error deleting playlist: {str(e)}", "error")
+    
     return redirect(url_for('home'))
 
 # ---------------- Player Controls ---------------- #
@@ -236,8 +272,12 @@ def player_control():
             sp.next_track()
         elif action == "previous":
             sp.previous_track()
-    except Exception:
-        flash("Player action failed", "error")
+    except Exception as e:
+        error_msg = str(e)
+        if '404' in error_msg:
+            flash("No active device found. Play something on Spotify first.", "error")
+        else:
+            flash(f"Player action failed: {error_msg}", "error")
 
     return redirect(url_for('home'))
 
