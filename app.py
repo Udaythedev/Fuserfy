@@ -26,6 +26,9 @@ app.config.setdefault('SESSION_COOKIE_SAMESITE', 'Lax')
 if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('FORCE_SESSION_SECURE') == '1':
     app.config.setdefault('SESSION_COOKIE_SECURE', True)
 
+# Prevent caching of responses to avoid stale OAuth tokens
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
 # ---------------- Spotify API Credentials (from env) ---------------- #
 # We build the SpotifyOAuth per-request so redirect URIs can be dynamic (useful for
 # local dev vs rendered/prod deployments). If `SPOTIPY_REDIRECT_URI` is set in the
@@ -33,7 +36,19 @@ if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('FORCE_SESSION_
 # root URL and append `/callback`.
 SPOTIPY_CLIENT_ID = os.environ.get('SPOTIPY_CLIENT_ID')
 SPOTIPY_CLIENT_SECRET = os.environ.get('SPOTIPY_CLIENT_SECRET')
-SCOPE = os.environ.get('SPOTIPY_SCOPE', "playlist-modify-public playlist-modify-private playlist-read-private user-read-playback-state user-modify-playback-state user-read-currently-playing user-top-read")
+
+# All required Spotify scopes for full app functionality
+DEFAULT_SCOPE = [
+    'playlist-modify-public',       # Create and modify public playlists
+    'playlist-modify-private',      # Create and modify private playlists
+    'playlist-read-private',        # Read private playlists
+    'user-read-playback-state',     # Check playback status
+    'user-modify-playback-state',   # Control playback (play/pause/next)
+    'user-read-currently-playing',  # Get current song
+    'user-top-read'                 # Get top tracks and artists
+]
+
+SCOPE = os.environ.get('SPOTIPY_SCOPE', ' '.join(DEFAULT_SCOPE))
 
 
 def get_spotify_oauth(redirect_override: str | None = None):
@@ -63,6 +78,63 @@ def get_spotify_oauth(redirect_override: str | None = None):
 
 # Project name (used in templates/title)
 PROJECT_NAME = os.environ.get('PROJECT_NAME', 'Fuserfy')
+
+# ---------------- Error Handler Utilities ---------------- #
+def _handle_spotify_error(error_msg: str):
+    """Convert Spotify API errors to user-friendly messages with actionable steps.
+    
+    Returns: (title, message, category)
+    """
+    error_lower = error_msg.lower()
+    
+    # Insufficient scope error
+    if '403' in error_msg and 'insufficient client scope' in error_lower:
+        return (
+            "Missing permissions",
+            "This feature requires additional Spotify permissions. "
+            "Please log out and sign in again to grant the necessary access.",
+            "warning"
+        )
+    
+    # Test user not registered
+    if '403' in error_msg and 'user may not be registered' in error_lower:
+        return (
+            "Account not registered",
+            "Your Spotify account needs to be added as a test user. "
+            "Ask the app developer to add your account in the Spotify Developer Dashboard.",
+            "warning"
+        )
+    
+    # Token expired or invalid
+    if '401' in error_msg or 'unauthorized' in error_lower or 'invalid' in error_lower:
+        return (
+            "Session expired",
+            "Your session has expired. Please log in again.",
+            "error"
+        )
+    
+    # Rate limited
+    if '429' in error_msg:
+        return (
+            "Too many requests",
+            "Spotify rate limit reached. Please wait a moment and try again.",
+            "warning"
+        )
+    
+    # No active playback device
+    if '404' in error_msg and 'device' in error_lower:
+        return (
+            "No active device",
+            "Play something on Spotify first, then try again.",
+            "info"
+        )
+    
+    # Generic fallback
+    return (
+        "Oops! Something went wrong",
+        "There was an issue connecting to Spotify. Please try again.",
+        "error"
+    )
 
 # ---------------- Routes ---------------- #
 @app.route("/")
@@ -168,6 +240,8 @@ def home():
             ]
         except Exception as e:
             print(f"Error fetching top tracks: {e}")
+            title, msg, category = _handle_spotify_error(str(e))
+            flash(msg, category)
 
         # Get top artists (last 4 weeks) - with error handling
         top_artists_data = []
@@ -183,6 +257,7 @@ def home():
             ]
         except Exception as e:
             print(f"Error fetching top artists: {e}")
+            # Only show error if not already displayed from top tracks
 
         return render_template(
             "home.html",
@@ -196,23 +271,8 @@ def home():
         )
     except Exception as e:
         error_msg = str(e)
-        # Check for common Spotify errors
-        if '403' in error_msg and 'user may not be registered' in error_msg.lower():
-            flash(
-                "Your Spotify account is not registered as a test user. "
-                "Go to https://developer.spotify.com/dashboard, select your app, "
-                "and add your Spotify account email under 'User Management'.",
-                "error"
-            )
-        elif '401' in error_msg or 'unauthorized' in error_msg.lower():
-            flash("Session expired. Please log in again.", "error")
-            session.pop('token_info', None)
-            return redirect(url_for('index'))
-        elif '429' in error_msg:
-            flash("Rate limited by Spotify. Please try again in a moment.", "error")
-        else:
-            flash(f"Error loading playlists: {error_msg}", "error")
-        
+        title, user_msg, category = _handle_spotify_error(error_msg)
+        flash(user_msg, category)
         return redirect(url_for('index'))
 
 # ---------------- Playlist Management ---------------- #
@@ -225,23 +285,35 @@ def add_songs():
     playlist_id = request.form.get('playlist_id')
     song_list = [s.strip() for s in request.form.get('song_list', '').splitlines() if s.strip()]
 
+    if not song_list:
+        flash("Please enter at least one song.", "info")
+        return redirect(url_for('home'))
+
     try:
         track_uris = []
+        not_found = []
+        
         for song in song_list:
-            results = sp.search(q=song, limit=1, type='track')
-            items = results.get('tracks', {}).get('items')
-            if items:
-                track_uris.append(items[0]['uri'])
-            else:
-                flash(f"Song not found: {song}", "error")
+            try:
+                results = sp.search(q=song, limit=1, type='track')
+                items = results.get('tracks', {}).get('items')
+                if items:
+                    track_uris.append(items[0]['uri'])
+                else:
+                    not_found.append(song)
+            except Exception:
+                not_found.append(song)
 
         if track_uris:
             sp.playlist_add_items(playlist_id, track_uris)
-            flash(f"Added {len(track_uris)} songs!", "success")
+            flash(f"✓ Added {len(track_uris)} song(s)!", "success")
+            if not_found:
+                flash(f"⚠ {len(not_found)} song(s) not found: {', '.join(not_found[:3])}{'...' if len(not_found) > 3 else ''}", "info")
         else:
-            flash("No valid songs found.", "error")
+            flash("No songs found. Check your spelling and try again.", "error")
     except Exception as e:
-        flash(f"Error adding songs: {str(e)}", "error")
+        title, user_msg, category = _handle_spotify_error(str(e))
+        flash(user_msg, category)
 
     return redirect(url_for('home'))
 
@@ -252,13 +324,18 @@ def create_playlist():
         flash("Not authenticated. Please sign in again.", "error")
         return redirect(url_for('index'))
 
-    name = request.form.get('new_playlist_name')
+    name = request.form.get('new_playlist_name', '').strip()
+    if not name:
+        flash("Playlist name cannot be empty.", "info")
+        return redirect(url_for('home'))
+
     try:
         user_id = sp.current_user().get('id')
         sp.user_playlist_create(user_id, name)
-        flash(f"Playlist '{name}' created!", "success")
+        flash(f"✓ Playlist '{name}' created!", "success")
     except Exception as e:
-        flash(f"Error creating playlist: {str(e)}", "error")
+        title, user_msg, category = _handle_spotify_error(str(e))
+        flash(user_msg, category)
     
     return redirect(url_for('home'))
 
@@ -270,12 +347,17 @@ def rename_playlist():
         return redirect(url_for('index'))
 
     playlist_id = request.form.get('playlist_id')
-    new_name = request.form.get('new_name')
+    new_name = request.form.get('new_name', '').strip()
+    if not new_name:
+        flash("Playlist name cannot be empty.", "info")
+        return redirect(url_for('home'))
+
     try:
         sp.playlist_change_details(playlist_id, name=new_name)
-        flash(f"Playlist renamed to '{new_name}'!", "success")
+        flash(f"✓ Playlist renamed to '{new_name}'!", "success")
     except Exception as e:
-        flash(f"Error renaming playlist: {str(e)}", "error")
+        title, user_msg, category = _handle_spotify_error(str(e))
+        flash(user_msg, category)
     
     return redirect(url_for('home'))
 
@@ -289,9 +371,10 @@ def delete_playlist():
     playlist_id = request.form.get('playlist_id')
     try:
         sp.current_user_unfollow_playlist(playlist_id)
-        flash("Playlist deleted!", "success")
+        flash("✓ Playlist deleted!", "success")
     except Exception as e:
-        flash(f"Error deleting playlist: {str(e)}", "error")
+        title, user_msg, category = _handle_spotify_error(str(e))
+        flash(user_msg, category)
     
     return redirect(url_for('home'))
 
@@ -332,10 +415,8 @@ def player_control():
                 sp.repeat('off')
     except Exception as e:
         error_msg = str(e)
-        if '404' in error_msg:
-            flash("No active device found. Play something on Spotify first.", "error")
-        else:
-            flash(f"Player action failed: {error_msg}", "error")
+        title, user_msg, category = _handle_spotify_error(error_msg)
+        flash(user_msg, category)
 
     return redirect(url_for('home'))
 
@@ -348,12 +429,17 @@ def search_songs():
     
     query = request.form.get('search_query', '').strip()
     if not query:
-        flash("Please enter a search term.", "error")
+        flash("Please enter a search term.", "info")
         return redirect(url_for('home'))
     
     try:
         results = sp.search(q=query, limit=10, type='track')
         tracks = results.get('tracks', {}).get('items', [])
+        
+        if not tracks:
+            flash(f"No songs found for '{query}'. Try different keywords.", "info")
+            return redirect(url_for('home'))
+        
         search_results = [
             {
                 'uri': track['uri'],
@@ -373,7 +459,8 @@ def search_songs():
             playlists=sp.current_user_playlists().get('items', [])
         )
     except Exception as e:
-        flash(f"Search failed: {str(e)}", "error")
+        title, user_msg, category = _handle_spotify_error(str(e))
+        flash(user_msg, category)
         return redirect(url_for('home'))
 
 @app.route("/add_song_to_playlist", methods=["POST"])
@@ -388,9 +475,10 @@ def add_song_to_playlist():
     
     try:
         sp.playlist_add_items(playlist_id, [track_uri])
-        flash("Song added to playlist!", "success")
+        flash("✓ Song added to playlist!", "success")
     except Exception as e:
-        flash(f"Error adding song: {str(e)}", "error")
+        title, user_msg, category = _handle_spotify_error(str(e))
+        flash(user_msg, category)
     
     return redirect(request.referrer or url_for('home'))
 
