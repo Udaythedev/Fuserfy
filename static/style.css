@@ -186,16 +186,31 @@ main {
     width: 100%;
 }
 
+/* Sections */
+.section {
+    margin-bottom: 25px;
+}
+
+.section h2 {
+    font-size: 20px;
+    color: #fff;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(29, 185, 84, 0.3);
+}
+
 /* Mini Player */
 .mini-player {
     display: flex;
     align-items: center;
-    background: rgba(0,0,0,0.5);
-    padding: 15px;
-    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(29, 185, 84, 0.1), rgba(0,0,0,0.6));
+    padding: 20px;
+    border-radius: 16px;
     margin-bottom: 20px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    border: 1px solid rgba(29, 185, 84, 0.2);
     animation: slideDown 0.4s ease;
+    gap: 20px;
 }
 
 @keyframes slideDown {
@@ -210,67 +225,158 @@ main {
 }
 
 .album-art {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
-    margin-right: 15px;
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    object-fit: cover;
+}
+
+.track-info {
+    flex: 1;
 }
 
 .track-info h3 {
     margin: 0;
-    font-size: 20px;
+    font-size: 18px;
+    color: #fff;
 }
 
 .track-info p {
     margin: 5px 0 0;
     color: #b3b3b3;
+    font-size: 14px;
 }
 
-.controls button {
+.controls {
+    display: flex;
+    gap: 10px;
+}
+
+.control-btn {
     background: rgba(255,255,255,0.1);
-    border: none;
+    border: 1px solid rgba(29, 185, 84, 0.3);
     color: #fff;
-    padding: 10px;
-    margin-left: 10px;
+    padding: 12px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s ease;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
 }
 
-.controls button:hover {
-    background: #1db954;
+.control-btn:hover {
+    background: rgba(29, 185, 84, 0.3);
+    transform: scale(1.1);
+}
+
+.control-btn.primary {
+    background: linear-gradient(135deg, #1db954, #1ed760);
+    border: none;
+}
+
+.control-btn.primary:hover {
+    background: linear-gradient(135deg, #1ed760, #1db954);
+    transform: scale(1.15);
+    box-shadow: 0 0 20px rgba(29, 185, 84, 0.6);
+}
+
+.no-song {
+    color: #b3b3b3;
+    text-align: center;
+    flex: 1;
+    padding: 30px 20px;
+}
+
+.no-song p {
+    margin: 0;
+    font-size: 18px;
+}
+
+.no-song small {
+    display: block;
+    font-size: 12px;
+    margin-top: 8px;
+    color: #808080;
 }
 
 /* Add Songs Form */
 .add-songs {
-    margin-top: 20px;
+    background: linear-gradient(135deg, rgba(29, 185, 84, 0.1), rgba(0,0,0,0.4));
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(29, 185, 84, 0.2);
+}
+
+.add-songs select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(29, 185, 84, 0.3);
+    margin-bottom: 12px;
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.add-songs select:focus {
+    outline: none;
+    border-color: #1db954;
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.3);
+}
+
+.add-songs select option {
+    background: #191414;
+    color: #fff;
 }
 
 .add-songs textarea {
     width: 100%;
-    height: 80px;
-    padding: 10px;
-    border-radius: 12px;
-    border: none;
-    margin-bottom: 10px;
-    resize: none;
+    height: 100px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(29, 185, 84, 0.3);
+    margin-bottom: 12px;
+    resize: vertical;
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    transition: all 0.3s ease;
 }
 
-.add-songs select {
-    padding: 8px;
-    border-radius: 12px;
-    border: none;
-    margin-bottom: 10px;
+.add-songs textarea:focus {
+    outline: none;
+    border-color: #1db954;
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.3);
 }
 
-.add-songs button {
-    padding: 10px 15px;
-    border-radius: 12px;
+.add-songs textarea::placeholder {
+    color: #808080;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
     border: none;
-    background: #1db954;
+    background: linear-gradient(135deg, #1db954, #1ed760);
+    color: #fff;
     cursor: pointer;
     font-weight: bold;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(29, 185, 84, 0.4);
 }
 
 /* Flash messages */
@@ -293,10 +399,11 @@ main {
 
 /* Search Section */
 .search-section {
-    background: rgba(0,0,0,0.5);
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 20px;
+    background: linear-gradient(135deg, rgba(29, 185, 84, 0.15), rgba(0,0,0,0.4));
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(29, 185, 84, 0.3);
 }
 
 .search-form {
@@ -306,26 +413,41 @@ main {
 
 .search-form input {
     flex: 1;
-    padding: 10px;
-    border: none;
-    border-radius: 8px;
+    padding: 12px 16px;
+    border: 1px solid rgba(29, 185, 84, 0.3);
+    border-radius: 10px;
     font-size: 14px;
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    transition: all 0.3s ease;
 }
 
-.search-form button {
-    padding: 10px 20px;
-    background: #1db954;
+.search-form input:focus {
+    outline: none;
+    background: rgba(255,255,255,0.1);
+    border-color: #1db954;
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.3);
+}
+
+.search-form input::placeholder {
+    color: #808080;
+}
+
+.search-btn {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #1db954, #1ed760);
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     font-weight: bold;
-    transition: all 0.2s ease;
+    font-size: 14px;
+    transition: all 0.3s ease;
 }
 
-.search-form button:hover {
-    background: #1ed760;
-    transform: scale(1.05);
+.search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(29, 185, 84, 0.4);
 }
 
 /* Analytics Section */
@@ -495,5 +617,16 @@ main {
     .top-items-grid,
     .search-results-grid {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    .controls {
+        flex-wrap: wrap;
+    }
+    .mini-player {
+        flex-direction: column;
+        text-align: center;
+    }
+    .album-art {
+        width: 80px;
+        height: 80px;
     }
 }

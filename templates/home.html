@@ -48,110 +48,114 @@
         <div class="content-wrapper">
             <!-- Main Content -->
             <main>
-            <!-- Mini Player -->
-            <div class="mini-player">
-                {% if now_playing.is_playing %}
-                    <img src="{{ now_playing.album_image }}" alt="Album Art" class="album-art">
-                    <div class="track-info">
-                        <h3>{{ now_playing.track_name }}</h3>
-                        <p>{{ now_playing.artist_name }}</p>
+                <!-- Flash Messages (Top) -->
+                <div class="flash-messages">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="flash {{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+
+                <!-- Now Playing Section -->
+                <section class="section now-playing-section">
+                    <h2>🎵 Now Playing</h2>
+                    <div class="mini-player">
+                        {% if now_playing.is_playing %}
+                            <img src="{{ now_playing.album_image }}" alt="Album Art" class="album-art">
+                            <div class="track-info">
+                                <h3>{{ now_playing.track_name }}</h3>
+                                <p>{{ now_playing.artist_name }}</p>
+                            </div>
+                            <div class="controls">
+                                <form method="POST" action="{{ url_for('player_control') }}">
+                                    <input type="hidden" name="action" value="previous">
+                                    <button type="submit" class="control-btn" title="Previous">⏮️</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('player_control') }}">
+                                    <input type="hidden" name="action" value="play_pause">
+                                    <button type="submit" class="control-btn primary" title="Play/Pause">⏯️</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('player_control') }}">
+                                    <input type="hidden" name="action" value="next">
+                                    <button type="submit" class="control-btn" title="Next">⏭️</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('player_control') }}">
+                                    <input type="hidden" name="action" value="shuffle">
+                                    <button type="submit" class="control-btn" title="Shuffle">🔀</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('player_control') }}">
+                                    <input type="hidden" name="action" value="repeat">
+                                    <button type="submit" class="control-btn" title="Repeat">🔁</button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <div class="no-song">
+                                <p>🎧 No song playing</p>
+                                <small>Start playing something on your Spotify to control playback</small>
+                            </div>
+                        {% endif %}
                     </div>
-                    <div class="controls">
-                        <form method="POST" action="{{ url_for('player_control') }}">
-                            <input type="hidden" name="action" value="previous">
-                            <button type="submit" title="Previous">⏮️</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('player_control') }}">
-                            <input type="hidden" name="action" value="play_pause">
-                            <button type="submit" title="Play/Pause">⏯️</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('player_control') }}">
-                            <input type="hidden" name="action" value="next">
-                            <button type="submit" title="Next">⏭️</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('player_control') }}">
-                            <input type="hidden" name="action" value="shuffle">
-                            <button type="submit" title="Shuffle">🔀</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('player_control') }}">
-                            <input type="hidden" name="action" value="repeat">
-                            <button type="submit" title="Repeat">🔁</button>
-                        </form>
+                </section>
+
+                <!-- Search Section -->
+                <section class="section search-section">
+                    <h2>🔍 Search & Add Songs</h2>
+                    <form method="POST" action="{{ url_for('search_songs') }}" class="search-form">
+                        <input type="text" name="search_query" placeholder="Search by song, artist, or album..." required>
+                        <button type="submit" class="search-btn">🔍 Search</button>
+                    </form>
+                </section>
+
+                <!-- Bulk Add Section -->
+                <section class="section add-songs">
+                    <h2>➕ Add Multiple Songs</h2>
+                    <form method="POST" action="{{ url_for('add_songs') }}">
+                        <select name="playlist_id" required>
+                            <option value="">Select a playlist...</option>
+                            {% for playlist in playlists %}
+                                <option value="{{ playlist.id }}">{{ playlist.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <textarea name="song_list" placeholder="Enter song names, one per line" required></textarea>
+                        <button type="submit" class="submit-btn">Add Songs</button>
+                    </form>
+                </section>
+
+                <!-- Top Tracks Section -->
+                {% if top_tracks %}
+                <section class="section analytics-section">
+                    <h2>🔥 Your Top Tracks (Last 4 Weeks)</h2>
+                    <div class="top-items-grid">
+                        {% for track in top_tracks %}
+                            <div class="top-item-card">
+                                <img src="{{ track.image }}" alt="{{ track.name }}" class="top-item-image">
+                                <h4>{{ track.name }}</h4>
+                                <p>{{ track.artist }}</p>
+                            </div>
+                        {% endfor %}
                     </div>
-                {% else %}
-                    <div class="no-song">
-                        <p>🎧 No song playing</p>
-                        <small>Start playing something on your Spotify to control playback</small>
-                    </div>
+                </section>
                 {% endif %}
-            </div>
 
-            <!-- Search Section -->
-            <div class="search-section">
-                <h3>Search & Add Songs</h3>
-                <form method="POST" action="{{ url_for('search_songs') }}" class="search-form">
-                    <input type="text" name="search_query" placeholder="Search by song, artist, or album..." required>
-                    <button type="submit">🔍 Search</button>
-                </form>
-            </div>
-
-            <!-- Add Songs -->
-            <div class="add-songs">
-                <h3>Add Songs to Playlist</h3>
-                <form method="POST" action="{{ url_for('add_songs') }}">
-                    <select name="playlist_id" required>
-                        {% for playlist in playlists %}
-                            <option value="{{ playlist.id }}">{{ playlist.name }}</option>
+                <!-- Top Artists Section -->
+                {% if top_artists %}
+                <section class="section analytics-section">
+                    <h2>⭐ Your Top Artists (Last 4 Weeks)</h2>
+                    <div class="top-items-grid">
+                        {% for artist in top_artists %}
+                            <div class="top-item-card">
+                                <img src="{{ artist.image }}" alt="{{ artist.name }}" class="top-item-image">
+                                <h4>{{ artist.name }}</h4>
+                                <p class="genres">{{ artist.genres }}</p>
+                            </div>
                         {% endfor %}
-                    </select>
-                    <textarea name="song_list" placeholder="Enter song names, one per line" required></textarea>
-                    <button type="submit">Add Songs</button>
-                </form>
-            </div>
-
-            <!-- Top Tracks Section -->
-            {% if top_tracks %}
-            <div class="analytics-section">
-                <h3>🔥 Your Top Tracks (Last 4 Weeks)</h3>
-                <div class="top-items-grid">
-                    {% for track in top_tracks %}
-                        <div class="top-item-card">
-                            <img src="{{ track.image }}" alt="{{ track.name }}" class="top-item-image">
-                            <h4>{{ track.name }}</h4>
-                            <p>{{ track.artist }}</p>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Top Artists Section -->
-            {% if top_artists %}
-            <div class="analytics-section">
-                <h3>⭐ Your Top Artists (Last 4 Weeks)</h3>
-                <div class="top-items-grid">
-                    {% for artist in top_artists %}
-                        <div class="top-item-card">
-                            <img src="{{ artist.image }}" alt="{{ artist.name }}" class="top-item-image">
-                            <h4>{{ artist.name }}</h4>
-                            <p class="genres">{{ artist.genres }}</p>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Flash Messages -->
-            <div class="flash-messages">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="flash {{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-            </div>
-        </main>
+                    </div>
+                </section>
+                {% endif %}
+            </main>
         </div>
     </div>
 </body>
