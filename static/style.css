@@ -35,6 +35,25 @@ body {
     margin-bottom: 20px;
 }
 
+.logout-btn {
+    display: inline-block;
+    padding: 8px 12px;
+    background: #ff4c4c;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    margin-top: 10px;
+    border: none;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background: #ff2c2c;
+}
+
 /* Playlist List */
 .playlists {
     list-style: none;

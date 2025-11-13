@@ -80,6 +80,12 @@ def index():
         auth_url = oauth.get_authorize_url()
         return redirect(auth_url)
 
+@app.route("/logout")
+def logout():
+    session.pop('token_info', None)
+    flash("You have been logged out.", "success")
+    return redirect(url_for('index'))
+
 @app.route("/callback")
 def callback():
     code = request.args.get('code')
