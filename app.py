@@ -131,7 +131,10 @@ def home():
         return redirect(url_for('index'))
 
     try:
-        display_name = sp.current_user().get('display_name')
+        user_data = sp.current_user()
+        display_name = user_data.get('display_name')
+        profile_image = user_data.get('images', [{}])[0].get('url', '') if user_data.get('images') else ''
+        
         playlists = sp.current_user_playlists().get('items', [])
 
         # Get currently playing song
@@ -140,20 +143,47 @@ def home():
             now_playing = {
                 'track_name': current['item']['name'],
                 'artist_name': ', '.join([a['name'] for a in current['item']['artists']]),
-                'album_image': current['item']['album']['images'][0]['url']
+                'album_image': current['item']['album']['images'][0]['url'],
+                'is_playing': True
             }
         else:
             now_playing = {
                 'track_name': 'No song playing',
                 'artist_name': '',
-                'album_image': ''
+                'album_image': '',
+                'is_playing': False
             }
+
+        # Get top tracks (last 4 weeks)
+        top_tracks = sp.current_user_top_tracks(limit=5, time_range='short_term').get('items', [])
+        top_tracks_data = [
+            {
+                'name': track['name'],
+                'artist': ', '.join([a['name'] for a in track['artists']]),
+                'image': track['album']['images'][0]['url'] if track['album']['images'] else ''
+            }
+            for track in top_tracks
+        ]
+
+        # Get top artists (last 4 weeks)
+        top_artists = sp.current_user_top_artists(limit=5, time_range='short_term').get('items', [])
+        top_artists_data = [
+            {
+                'name': artist['name'],
+                'image': artist['images'][0]['url'] if artist['images'] else '',
+                'genres': ', '.join(artist['genres'][:2]) if artist['genres'] else 'Genre N/A'
+            }
+            for artist in top_artists
+        ]
 
         return render_template(
             "home.html",
             display_name=display_name,
+            profile_image=profile_image,
             playlists=playlists,
             now_playing=now_playing,
+            top_tracks=top_tracks_data,
+            top_artists=top_artists_data,
             project_name=PROJECT_NAME
         )
     except Exception as e:
@@ -278,6 +308,20 @@ def player_control():
             sp.next_track()
         elif action == "previous":
             sp.previous_track()
+        elif action == "shuffle":
+            current = sp.current_playback()
+            new_state = not current.get('shuffle_state', False) if current else True
+            sp.shuffle(new_state)
+        elif action == "repeat":
+            # Cycle through repeat states: off -> context -> track -> off
+            current = sp.current_playback()
+            repeat_state = current.get('repeat_state', 'off') if current else 'off'
+            if repeat_state == 'off':
+                sp.repeat('context')
+            elif repeat_state == 'context':
+                sp.repeat('track')
+            else:
+                sp.repeat('off')
     except Exception as e:
         error_msg = str(e)
         if '404' in error_msg:
@@ -286,6 +330,61 @@ def player_control():
             flash(f"Player action failed: {error_msg}", "error")
 
     return redirect(url_for('home'))
+
+@app.route("/search_songs", methods=["POST"])
+def search_songs():
+    sp = get_spotify()
+    if not sp:
+        flash("Not authenticated. Please sign in again.", "error")
+        return redirect(url_for('index'))
+    
+    query = request.form.get('search_query', '').strip()
+    if not query:
+        flash("Please enter a search term.", "error")
+        return redirect(url_for('home'))
+    
+    try:
+        results = sp.search(q=query, limit=10, type='track')
+        tracks = results.get('tracks', {}).get('items', [])
+        search_results = [
+            {
+                'uri': track['uri'],
+                'name': track['name'],
+                'artist': ', '.join([a['name'] for a in track['artists']]),
+                'image': track['album']['images'][0]['url'] if track['album']['images'] else '',
+                'id': track['id']
+            }
+            for track in tracks
+        ]
+        
+        return render_template(
+            "search_results.html",
+            search_query=query,
+            search_results=search_results,
+            project_name=PROJECT_NAME,
+            playlists=sp.current_user_playlists().get('items', [])
+        )
+    except Exception as e:
+        flash(f"Search failed: {str(e)}", "error")
+        return redirect(url_for('home'))
+
+@app.route("/add_song_to_playlist", methods=["POST"])
+def add_song_to_playlist():
+    sp = get_spotify()
+    if not sp:
+        flash("Not authenticated. Please sign in again.", "error")
+        return redirect(url_for('index'))
+    
+    playlist_id = request.form.get('playlist_id')
+    track_uri = request.form.get('track_uri')
+    
+    try:
+        sp.playlist_add_items(playlist_id, [track_uri])
+        flash("Song added to playlist!", "success")
+    except Exception as e:
+        flash(f"Error adding song: {str(e)}", "error")
+    
+    return redirect(request.referrer or url_for('home'))
 
 if __name__ == "__main__":
     app.run(debug=True)

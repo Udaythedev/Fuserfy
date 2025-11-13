@@ -18,6 +18,11 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="user-info">
+                {% if profile_image %}
+                    <img src="{{ profile_image }}" alt="{{ display_name }}" class="profile-image">
+                {% else %}
+                    <div class="profile-placeholder">👤</div>
+                {% endif %}
                 <h2>{{ display_name }}</h2>
                 <div class="project-name">Logged in</div>
             </div>
@@ -45,7 +50,7 @@
             <main>
             <!-- Mini Player -->
             <div class="mini-player">
-                {% if now_playing.track_name != 'No song playing' %}
+                {% if now_playing.is_playing %}
                     <img src="{{ now_playing.album_image }}" alt="Album Art" class="album-art">
                     <div class="track-info">
                         <h3>{{ now_playing.track_name }}</h3>
@@ -54,20 +59,40 @@
                     <div class="controls">
                         <form method="POST" action="{{ url_for('player_control') }}">
                             <input type="hidden" name="action" value="previous">
-                            <button type="submit">⏮️</button>
+                            <button type="submit" title="Previous">⏮️</button>
                         </form>
                         <form method="POST" action="{{ url_for('player_control') }}">
                             <input type="hidden" name="action" value="play_pause">
-                            <button type="submit">⏯️</button>
+                            <button type="submit" title="Play/Pause">⏯️</button>
                         </form>
                         <form method="POST" action="{{ url_for('player_control') }}">
                             <input type="hidden" name="action" value="next">
-                            <button type="submit">⏭️</button>
+                            <button type="submit" title="Next">⏭️</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('player_control') }}">
+                            <input type="hidden" name="action" value="shuffle">
+                            <button type="submit" title="Shuffle">🔀</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('player_control') }}">
+                            <input type="hidden" name="action" value="repeat">
+                            <button type="submit" title="Repeat">🔁</button>
                         </form>
                     </div>
                 {% else %}
-                    <p class="no-song">No song playing</p>
+                    <div class="no-song">
+                        <p>🎧 No song playing</p>
+                        <small>Start playing something on your Spotify to control playback</small>
+                    </div>
                 {% endif %}
+            </div>
+
+            <!-- Search Section -->
+            <div class="search-section">
+                <h3>Search & Add Songs</h3>
+                <form method="POST" action="{{ url_for('search_songs') }}" class="search-form">
+                    <input type="text" name="search_query" placeholder="Search by song, artist, or album..." required>
+                    <button type="submit">🔍 Search</button>
+                </form>
             </div>
 
             <!-- Add Songs -->
@@ -83,6 +108,38 @@
                     <button type="submit">Add Songs</button>
                 </form>
             </div>
+
+            <!-- Top Tracks Section -->
+            {% if top_tracks %}
+            <div class="analytics-section">
+                <h3>🔥 Your Top Tracks (Last 4 Weeks)</h3>
+                <div class="top-items-grid">
+                    {% for track in top_tracks %}
+                        <div class="top-item-card">
+                            <img src="{{ track.image }}" alt="{{ track.name }}" class="top-item-image">
+                            <h4>{{ track.name }}</h4>
+                            <p>{{ track.artist }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Top Artists Section -->
+            {% if top_artists %}
+            <div class="analytics-section">
+                <h3>⭐ Your Top Artists (Last 4 Weeks)</h3>
+                <div class="top-items-grid">
+                    {% for artist in top_artists %}
+                        <div class="top-item-card">
+                            <img src="{{ artist.image }}" alt="{{ artist.name }}" class="top-item-image">
+                            <h4>{{ artist.name }}</h4>
+                            <p class="genres">{{ artist.genres }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Flash Messages -->
             <div class="flash-messages">
