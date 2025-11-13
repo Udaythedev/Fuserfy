@@ -33,7 +33,7 @@ if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('FORCE_SESSION_
 # root URL and append `/callback`.
 SPOTIPY_CLIENT_ID = os.environ.get('SPOTIPY_CLIENT_ID')
 SPOTIPY_CLIENT_SECRET = os.environ.get('SPOTIPY_CLIENT_SECRET')
-SCOPE = os.environ.get('SPOTIPY_SCOPE', "playlist-modify-public playlist-modify-private playlist-read-private user-read-playback-state user-modify-playback-state user-read-currently-playing")
+SCOPE = os.environ.get('SPOTIPY_SCOPE', "playlist-modify-public playlist-modify-private playlist-read-private user-read-playback-state user-modify-playback-state user-read-currently-playing user-top-read")
 
 
 def get_spotify_oauth(redirect_override: str | None = None):
@@ -154,27 +154,35 @@ def home():
                 'is_playing': False
             }
 
-        # Get top tracks (last 4 weeks)
-        top_tracks = sp.current_user_top_tracks(limit=5, time_range='short_term').get('items', [])
-        top_tracks_data = [
-            {
-                'name': track['name'],
-                'artist': ', '.join([a['name'] for a in track['artists']]),
-                'image': track['album']['images'][0]['url'] if track['album']['images'] else ''
-            }
-            for track in top_tracks
-        ]
+        # Get top tracks (last 4 weeks) - with error handling
+        top_tracks_data = []
+        try:
+            top_tracks = sp.current_user_top_tracks(limit=5, time_range='short_term').get('items', [])
+            top_tracks_data = [
+                {
+                    'name': track['name'],
+                    'artist': ', '.join([a['name'] for a in track['artists']]),
+                    'image': track['album']['images'][0]['url'] if track['album']['images'] else ''
+                }
+                for track in top_tracks
+            ]
+        except Exception as e:
+            print(f"Error fetching top tracks: {e}")
 
-        # Get top artists (last 4 weeks)
-        top_artists = sp.current_user_top_artists(limit=5, time_range='short_term').get('items', [])
-        top_artists_data = [
-            {
-                'name': artist['name'],
-                'image': artist['images'][0]['url'] if artist['images'] else '',
-                'genres': ', '.join(artist['genres'][:2]) if artist['genres'] else 'Genre N/A'
-            }
-            for artist in top_artists
-        ]
+        # Get top artists (last 4 weeks) - with error handling
+        top_artists_data = []
+        try:
+            top_artists = sp.current_user_top_artists(limit=5, time_range='short_term').get('items', [])
+            top_artists_data = [
+                {
+                    'name': artist['name'],
+                    'image': artist['images'][0]['url'] if artist['images'] else '',
+                    'genres': ', '.join(artist['genres'][:2]) if artist['genres'] else 'Genre N/A'
+                }
+                for artist in top_artists
+            ]
+        except Exception as e:
+            print(f"Error fetching top artists: {e}")
 
         return render_template(
             "home.html",
