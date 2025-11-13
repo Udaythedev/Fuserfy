@@ -1,0 +1,25 @@
+venv/
+# Environment / secrets
+.env
+.env.*
+.env.local
+.secrets
+credentials.json
+*.pem
+*.key
+.DS_Store
+__pycache__/
+.cache/
+.idea/
+.vscode/
+*.pyc
+instance/
+*.log
+dist/
+build/
+coverage/
+.pytest_cache/
+.mypy_cache/
+pip-wheel-metadata/
+.venv/
+venv/

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project_name }} - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="user-info">
+                <h2>{{ display_name }}</h2>
+                <div class="project-name">{{ project_name }}</div>
+            </div>
+            <h3>Playlists</h3>
+            <ul class="playlists">
+                {% for playlist in playlists %}
+                    <li>
+                        {{ playlist.name }}
+                        <form method="POST" action="{{ url_for('delete_playlist') }}">
+                            <input type="hidden" name="playlist_id" value="{{ playlist.id }}">
+                            <button class="delete-btn">🗑️</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+            <form method="POST" action="{{ url_for('create_playlist') }}" class="create-form">
+                <input type="text" name="new_playlist_name" placeholder="New Playlist Name" required>
+                <button type="submit">Create</button>
+            </form>
+        </aside>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Mini Player -->
+            <div class="mini-player">
+                {% if now_playing.track_name != 'No song playing' %}
+                    <img src="{{ now_playing.album_image }}" alt="Album Art" class="album-art">
+                    <div class="track-info">
+                        <h3>{{ now_playing.track_name }}</h3>
+                        <p>{{ now_playing.artist_name }}</p>
+                    </div>
+                    <div class="controls">
+                        <form method="POST" action="{{ url_for('player_control') }}">
+                            <input type="hidden" name="action" value="previous">
+                            <button type="submit">⏮️</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('player_control') }}">
+                            <input type="hidden" name="action" value="play_pause">
+                            <button type="submit">⏯️</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('player_control') }}">
+                            <input type="hidden" name="action" value="next">
+                            <button type="submit">⏭️</button>
+                        </form>
+                    </div>
+                {% else %}
+                    <p class="no-song">No song playing</p>
+                {% endif %}
+            </div>
+
+            <!-- Add Songs -->
+            <div class="add-songs">
+                <h3>Add Songs to Playlist</h3>
+                <form method="POST" action="{{ url_for('add_songs') }}">
+                    <select name="playlist_id" required>
+                        {% for playlist in playlists %}
+                            <option value="{{ playlist.id }}">{{ playlist.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <textarea name="song_list" placeholder="Enter song names, one per line" required></textarea>
+                    <button type="submit">Add Songs</button>
+                </form>
+            </div>
+
+            <!-- Flash Messages -->
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </main>
+    </div>
+</body>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</html>
