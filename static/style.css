@@ -8,6 +8,35 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* SVG Icons */
+svg.hidden {
+    display: none;
+}
+
+.icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    color: currentColor;
+}
+
+.icon-sm {
+    width: 18px;
+    height: 18px;
+}
+
+.icon-lg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 10px;
+}
+
+.icon-xl {
+    width: 64px;
+    height: 64px;
+}
+
 /* Container */
 .container {
     display: flex;
@@ -131,6 +160,14 @@ body {
     text-transform: uppercase;
     color: #1db954;
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar h3 svg {
+    width: 16px;
+    height: 16px;
 }
 
 .sidebar h3:first-child {
@@ -168,9 +205,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 40px;
     margin: 0 auto 12px;
     border: 3px solid #1db954;
+}
+
+.profile-placeholder svg {
+    width: 40px;
+    height: 40px;
+    color: #fff;
 }
 
 .project-name {
@@ -245,6 +287,14 @@ body {
     border-radius: 4px;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-btn svg {
+    width: 18px;
+    height: 18px;
 }
 
 .delete-btn:hover {
@@ -356,6 +406,13 @@ main {
     padding-bottom: 10px;
     border-bottom: 2px solid rgba(29, 185, 84, 0.3);
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section h2 svg {
+    color: #1db954;
 }
 
 /* Mini Player */
@@ -428,6 +485,11 @@ main {
     height: 45px;
 }
 
+.control-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
 .control-btn:hover {
     background: rgba(29, 185, 84, 0.3);
     transform: scale(1.1);
@@ -449,10 +511,19 @@ main {
     text-align: center;
     flex: 1;
     padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-song svg {
+    color: #1db954;
+    opacity: 0.8;
 }
 
 .no-song p {
-    margin: 0;
+    margin: 15px 0 5px;
     font-size: 18px;
 }
 
@@ -641,6 +712,16 @@ main {
     font-weight: bold;
     font-size: 14px;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.search-btn svg {
+    width: 18px;
+    height: 18px;
 }
 
 .search-btn:hover {

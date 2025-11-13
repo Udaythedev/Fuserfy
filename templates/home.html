@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- SVG Icons -->
+    {% include 'icons.html' %}
     <div class="container">
         <!-- Header with Logout -->
         <header class="header">
@@ -41,20 +43,24 @@
                 {% if profile_image %}
                     <img src="{{ profile_image }}" alt="{{ display_name }}" class="profile-image">
                 {% else %}
-                    <div class="profile-placeholder">👤</div>
+                    <div class="profile-placeholder">
+                        <svg class="icon icon-user"><use xlink:href="#icon-user"></use></svg>
+                    </div>
                 {% endif %}
                 <h2>{{ display_name }}</h2>
                 <div class="project-name">Logged in</div>
             </div>
 
             <div class="sidebar-playlists">
-                <h3>📋 Playlists</h3>
+                <h3><svg class="icon icon-sm"><use xlink:href="#icon-playlist"></use></svg> Playlists</h3>
                 <ul class="playlists">
                     {% if playlists %}
                         {% for playlist in playlists %}
                             <li class="playlist-item">
                                 <span class="playlist-name">{{ playlist.name }}</span>
-                                <button class="delete-btn" type="button" data-playlist-id="{{ playlist.id }}" data-playlist-name="{{ playlist.name }}" title="Delete playlist" aria-label="Delete {{ playlist.name }}">🗑️</button>
+                                <button class="delete-btn" type="button" data-playlist-id="{{ playlist.id }}" data-playlist-name="{{ playlist.name }}" title="Delete playlist" aria-label="Delete {{ playlist.name }}">
+                                    <svg class="icon icon-sm"><use xlink:href="#icon-delete"></use></svg>
+                                </button>
                             </li>
                         {% endfor %}
                     {% else %}
@@ -77,7 +83,7 @@
             <main>
                 <!-- Now Playing Section -->
                 <section class="section now-playing-section">
-                    <h2>🎵 Now Playing</h2>
+                    <h2><svg class="icon icon-sm"><use xlink:href="#icon-music"></use></svg> Now Playing</h2>
                     <div class="mini-player">
                         {% if now_playing.is_playing %}
                             <img src="{{ now_playing.album_image }}" alt="Album Art" class="album-art">
@@ -88,28 +94,39 @@
                             <div class="controls">
                                 <form method="POST" action="{{ url_for('player_control') }}">
                                     <input type="hidden" name="action" value="previous">
-                                    <button type="submit" class="control-btn" title="Previous">⏮️</button>
+                                    <button type="submit" class="control-btn" title="Previous" aria-label="Previous track">
+                                        <svg class="icon"><use xlink:href="#icon-previous"></use></svg>
+                                    </button>
                                 </form>
                                 <form method="POST" action="{{ url_for('player_control') }}">
                                     <input type="hidden" name="action" value="play_pause">
-                                    <button type="submit" class="control-btn primary" title="Play/Pause">⏯️</button>
+                                    <button type="submit" class="control-btn primary" title="Play/Pause" aria-label="Play or pause">
+                                        <svg class="icon"><use xlink:href="#icon-play"></use></svg>
+                                    </button>
                                 </form>
                                 <form method="POST" action="{{ url_for('player_control') }}">
                                     <input type="hidden" name="action" value="next">
-                                    <button type="submit" class="control-btn" title="Next">⏭️</button>
+                                    <button type="submit" class="control-btn" title="Next" aria-label="Next track">
+                                        <svg class="icon"><use xlink:href="#icon-next"></use></svg>
+                                    </button>
                                 </form>
                                 <form method="POST" action="{{ url_for('player_control') }}">
                                     <input type="hidden" name="action" value="shuffle">
-                                    <button type="submit" class="control-btn" title="Shuffle">🔀</button>
+                                    <button type="submit" class="control-btn" title="Shuffle" aria-label="Toggle shuffle">
+                                        <svg class="icon"><use xlink:href="#icon-shuffle"></use></svg>
+                                    </button>
                                 </form>
                                 <form method="POST" action="{{ url_for('player_control') }}">
                                     <input type="hidden" name="action" value="repeat">
-                                    <button type="submit" class="control-btn" title="Repeat">🔁</button>
+                                    <button type="submit" class="control-btn" title="Repeat" aria-label="Cycle repeat mode">
+                                        <svg class="icon"><use xlink:href="#icon-repeat"></use></svg>
+                                    </button>
                                 </form>
                             </div>
                         {% else %}
                             <div class="no-song">
-                                <p>🎧 No song playing</p>
+                                <svg class="icon icon-lg"><use xlink:href="#icon-headphones"></use></svg>
+                                <p>No song playing</p>
                                 <small>Start playing something on your Spotify to control playback</small>
                             </div>
                         {% endif %}
@@ -118,16 +135,19 @@
 
                 <!-- Search Section -->
                 <section class="section search-section">
-                    <h2>🔍 Search & Add Songs</h2>
+                    <h2><svg class="icon icon-sm"><use xlink:href="#icon-search"></use></svg> Search & Add Songs</h2>
                     <form method="POST" action="{{ url_for('search_songs') }}" class="search-form" id="searchForm">
                         <input type="text" name="search_query" placeholder="Search by song, artist, or album..." required maxlength="100" aria-label="Search songs">
-                        <button type="submit" class="search-btn">🔍 Search</button>
+                        <button type="submit" class="search-btn">
+                            <svg class="icon"><use xlink:href="#icon-search"></use></svg>
+                            Search
+                        </button>
                     </form>
                 </section>
 
                 <!-- Bulk Add Section -->
                 <section class="section add-songs">
-                    <h2>➕ Add Multiple Songs</h2>
+                    <h2><svg class="icon icon-sm"><use xlink:href="#icon-plus"></use></svg> Add Multiple Songs</h2>
                     <form method="POST" action="{{ url_for('add_songs') }}" id="addSongsForm">
                         <div class="form-group">
                             <label for="playlistSelect">Select a playlist:</label>
@@ -151,7 +171,7 @@
                 <!-- Top Tracks Section -->
                 {% if top_tracks %}
                 <section class="section analytics-section">
-                    <h2>🔥 Your Top Tracks (Last 4 Weeks)</h2>
+                    <h2><svg class="icon icon-sm"><use xlink:href="#icon-fire"></use></svg> Your Top Tracks (Last 4 Weeks)</h2>
                     <div class="top-items-grid">
                         {% for track in top_tracks %}
                             <div class="top-item-card">
@@ -167,7 +187,7 @@
                 <!-- Top Artists Section -->
                 {% if top_artists %}
                 <section class="section analytics-section">
-                    <h2>⭐ Your Top Artists (Last 4 Weeks)</h2>
+                    <h2><svg class="icon icon-sm"><use xlink:href="#icon-star"></use></svg> Your Top Artists (Last 4 Weeks)</h2>
                     <div class="top-items-grid">
                         {% for artist in top_artists %}
                             <div class="top-item-card">
